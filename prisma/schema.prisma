@@ -1,0 +1,50 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client"
+  output   = "../app/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  name      String
+  role      String   // "customer" | "owner" | "admin"
+  createdAt DateTime @default(now())
+
+  restaurants  Restaurant[]  // このユーザーが店舗オーナーの場合、持ってる店舗一覧
+  reservations Reservation[] // このユーザーが行った予約一覧
+}
+
+model Restaurant {
+  id           String   @id @default(cuid())
+  ownerId      String
+  owner        User     @relation(fields: [ownerId], references: [id])
+  name         String
+  description  String?
+  address      String
+  phoneNumber  String
+  seatCount    Int
+  status       String   @default("pending") // "pending" | "approved" | "rejected"
+  createdAt    DateTime @default(now())
+
+  reservations Reservation[]
+}
+
+model Reservation {
+  id               String     @id @default(cuid())
+  userId           String
+  user             User       @relation(fields: [userId], references: [id])
+  restaurantId     String
+  restaurant       Restaurant @relation(fields: [restaurantId], references: [id])
+  reservationDate  DateTime
+  numberOfGuests   Int
+  status           String     @default("confirmed") // "confirmed" | "cancelled" | "completed"
+  createdAt        DateTime   @default(now())
+}
