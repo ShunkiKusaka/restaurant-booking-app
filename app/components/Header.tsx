@@ -19,6 +19,11 @@ export default function Header() {
               <span className="text-gray-500">
                 {session.user.name} さん({session.user.role})
               </span>
+              {session.user.role === "customer" && (
+                <Link href="/reservations" className="text-gray-700 hover:underline">
+                  予約履歴
+                </Link>
+              )}
               {session.user.role === "owner" && (
                 <Link href="/owner/dashboard" className="text-gray-700 hover:underline">
                   店舗管理
