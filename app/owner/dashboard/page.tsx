@@ -32,8 +32,15 @@ export default async function OwnerDashboard() {
   return (
     <main className="min-h-screen bg-gray-50 px-6 py-10">
       <div className="mx-auto max-w-3xl">
-        <h1 className="text-2xl font-bold text-gray-900 mb-6">予約管理</h1>
-
+        <div className="flex items-center justify-between mb-6">
+          <h1 className="text-2xl font-bold text-gray-900">予約管理</h1>
+          
+          <a href="/owner/restaurants/new"
+            className="text-sm rounded-lg bg-gray-900 px-4 py-2 text-white hover:bg-gray-700"
+          >
+            + 店舗を登録
+          </a>
+        </div>
         {reservations.length === 0 ? (
           <p className="text-gray-400 text-sm">まだ予約はありません</p>
         ) : (

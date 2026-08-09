@@ -41,11 +41,22 @@ git push  git hubに保存
 
 
 
-✓ 環境構築
-✓ DB設計・シードデータ
-✓ DB → 画面表示(Read)
-✓ フォームからDBに保存(Create)
-✓ 会員登録
-✓ ログイン(Auth.js v5)
-✓ ログイン中の人の情報を、予約に正しく紐付け
-✓ role による画面の出し分け(店舗オーナー向けダッシュボード)
+✓ 環境構築(Node.js, Git, PostgreSQL, Next.js, Prisma)
+✓ DB設計(User / Restaurant / Reservation + Auth.js用テーブル)
+✓ シードデータ
+✓ 店舗一覧の表示、予約フォーム(Create)
+✓ 会員登録・ログイン(Auth.js v5、Credentials認証)
+✓ ログイン中の人の情報を、正しく予約に紐付け
+✓ role別の画面アクセス制御(customer / owner / admin)
+✓ 店舗オーナー向けダッシュボード(自分の店舗の予約確認)
+✓ 運営向けダッシュボード(統計、店舗の承認・却下)
+✓ GitHubへの継続的な保存
+
+
+
+
+
+ログアウト機能
+店舗オーナーが店舗を登録する機能
+ユーザーが自分の予約一覧を見る画面
+予約のキャンセル機能
