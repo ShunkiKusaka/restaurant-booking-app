@@ -1,36 +1,16 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
-## Getting Started
+① ユーザー(customer / owner / admin)がログインできる
+② ログイン中の人の「role」を、サーバー側でいつでも確認できる
+③ roleに応じて、見える画面・使える機能を出し分ける
 
-First, run the development server:
+<auth.ts>
+①の「本人確認をする処理」そのもの。メール・パスワードをDBと照合する部分
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+<types/next-auth.d.ts>
+②のために必要な準備。「roleという情報を、通行証(セッション)に含めていいよ」とTypeScriptに教えるためのもの
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+<app/api/auth/[...nextauth]/route.ts>
+①の処理を、ブラウザからアクセスできる「窓口(URL)」として公開するためのもの
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+ブラウザ（ユーザー） ←→ 【サーバー: auth.ts, route.ts】 ←→ DB
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
