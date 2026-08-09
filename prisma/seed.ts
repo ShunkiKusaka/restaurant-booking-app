@@ -1,15 +1,19 @@
 import { PrismaClient } from "../app/generated/prisma/client.ts";
 import { PrismaPg } from "@prisma/adapter-pg";
+import bcrypt from "bcryptjs";
 
 const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
 const prisma = new PrismaClient({ adapter });
 
 async function main() {
+
+  const hashedPassword = await bcrypt.hash("password123", 10);
+
   // 運営ユーザー
   const admin = await prisma.user.create({
     data: {
       email: "admin@example.com",
-      password: "dummy_hashed_password",
+      password: hashedPassword,
       name: "運営 太郎",
       role: "admin",
     },
@@ -19,7 +23,7 @@ async function main() {
   const owner = await prisma.user.create({
     data: {
       email: "owner@example.com",
-      password: "dummy_hashed_password",
+      password: hashedPassword,
       name: "焼肉ひかり 店主",
       role: "owner",
     },
@@ -29,7 +33,7 @@ async function main() {
   const customer = await prisma.user.create({
     data: {
       email: "customer@example.com",
-      password: "dummy_hashed_password",
+      password: hashedPassword,
       name: "田中 花子",
       role: "customer",
     },
@@ -71,7 +75,7 @@ async function main() {
     },
   });
 
-  console.log("シードデータの投入が完了しました");
+  console.log("シードデータの投入が完了しました(パスワード: password123)");
 }
 
 main()
