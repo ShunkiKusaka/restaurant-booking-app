@@ -48,6 +48,9 @@ git push  git hubに保存
 ✓ ユーザー: 店舗検索、予約する、予約履歴、キャンセル
 ✓ 店舗オーナー: 店舗を登録、自分の店舗の予約確認
 ✓ 運営: 統計確認、店舗の審査(承認・却下)
+✓ CRUD一通り(Create/Read/Update/Delete)
+✓ Supabase(本番用DB)の構築
+✓ Vercelへのデプロイ ← 完了
 
 
 

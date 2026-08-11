@@ -20,4 +20,5 @@ export async function updateRestaurantStatus(
   });
 
   revalidatePath("/admin/dashboard");
+  revalidatePath("/")
 }
