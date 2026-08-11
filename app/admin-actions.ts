@@ -22,6 +22,6 @@ export async function updateRestaurantStatus(
   revalidatePath("/admin/dashboard");//このページのサーバーのキャッシュを削除
   revalidatePath("/")
   //このページのサーバーのキャッシュを削除 
-  //topページのキャッシュも削除しないと他ページでやった処理がここにも反映されない
-  //例えば他のページでやったCRUD処理など
+  //topページのキャッシュも削除しないと他ページでやった処理の結果がここにも反映されない
+  //例えば他のページでやったCRUD処理の結果など
 }
