@@ -19,9 +19,9 @@ export async function updateRestaurantStatus(
     data: { status: newStatus },
   });
 
-  revalidatePath("/admin/dashboard");//このページのキャッシュを削除
+  revalidatePath("/admin/dashboard");//このページのサーバーのキャッシュを削除
   revalidatePath("/")
-  //このページのキャッシュを削除 
+  //このページのサーバーのキャッシュを削除 
   //topページのキャッシュも削除しないと他ページでやった処理がここにも反映されない
   //例えば他のページでやったCRUD処理など
 }
