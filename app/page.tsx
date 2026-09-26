@@ -1,10 +1,17 @@
+import Link from "next/link";
 import { prisma } from "../lib/prisma.ts";
-import { createReservation } from "./actions.ts";
+import { auth } from "../auth.ts";
+import { todayJst } from "../lib/datetime.ts";
+import ReservationForm from "./components/ReservationForm.tsx";
 
 export default async function Home() {
+  const session = await auth();
   const restaurants = await prisma.restaurant.findMany({
     where: { status: "approved" },
+    orderBy: { createdAt: "asc" },
   });
+  const minDate = todayJst();
+  const role = session?.user?.role;
 
   return (
     <main className="min-h-screen bg-gray-50 px-6 py-10">
@@ -15,6 +22,10 @@ export default async function Home() {
         <p className="text-gray-500 mb-8">
           お近くのお店を検索して、その場で予約できます
         </p>
+
+        {restaurants.length === 0 && (
+          <p className="text-gray-400 text-sm">現在、予約できるお店はありません</p>
+        )}
 
         <div className="grid gap-4 sm:grid-cols-2">
           {restaurants.map((restaurant) => (
@@ -35,35 +46,24 @@ export default async function Home() {
                 席数: {restaurant.seatCount}席
               </p>
 
-              <form action={createReservation} className="mt-4 space-y-2">
-                <input type="hidden" name="restaurantId" value={restaurant.id} />
-                <input
-                  type="date"
-                  name="date"
-                  required
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
-                />
-                <input
-                  type="time"
-                  name="time"
-                  required
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
-                />
-                <input
-                  type="number"
-                  name="guests"
-                  min={1}
-                  defaultValue={2}
-                  required
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
-                />
-                <button
-                  type="submit"
-                  className="w-full rounded-lg bg-gray-900 py-2 text-sm font-medium text-white hover:bg-gray-700 transition-colors"
+              {!session?.user ? (
+                <Link
+                  href="/login"
+                  className="mt-4 block w-full rounded-lg border border-gray-300 py-2 text-center text-sm font-medium text-gray-700 hover:bg-gray-50"
                 >
-                  予約する
-                </button>
-              </form>
+                  ログインして予約する
+                </Link>
+              ) : role === "customer" ? (
+                <ReservationForm
+                  restaurantId={restaurant.id}
+                  seatCount={restaurant.seatCount}
+                  minDate={minDate}
+                />
+              ) : (
+                <p className="mt-4 text-xs text-gray-400">
+                  予約は一般ユーザーのアカウントで行えます
+                </p>
+              )}
             </div>
           ))}
         </div>
