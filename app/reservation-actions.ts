@@ -4,25 +4,31 @@ import { prisma } from "../lib/prisma.ts";
 import { auth } from "../auth.ts";
 import { revalidatePath } from "next/cache";
 
-export async function cancelReservation(reservationId: string) {
+// 予約のキャンセル。記録を残すため、削除せずに「キャンセル済み」に変える。
+// フォームから呼ばれるので、2つ目の引数に FormData が渡ってくる(使わない)。
+export async function cancelReservation(reservationId: string, _formData?: FormData) {
   const session = await auth();
+  if (!session?.user) return;
 
-  if (!session?.user) {
-    throw new Error("ログインしてください");
-  }
-
-  // 本当に自分の予約かどうかを確認する
   const reservation = await prisma.reservation.findUnique({
     where: { id: reservationId },
   });
 
-  if (!reservation || reservation.userId !== session.user.id) {
-    throw new Error("この予約をキャンセルする権限がありません");
+  // 本人の予約で、まだ来店前の「予約確定」のものだけキャンセルできる
+  if (
+    !reservation ||
+    reservation.userId !== session.user.id ||
+    reservation.status !== "confirmed" ||
+    reservation.reservationDate.getTime() <= Date.now()
+  ) {
+    return;
   }
 
-  await prisma.reservation.delete({
+  await prisma.reservation.update({
     where: { id: reservationId },
+    data: { status: "cancelled" },
   });
 
   revalidatePath("/reservations");
+  revalidatePath("/owner/dashboard");
 }
