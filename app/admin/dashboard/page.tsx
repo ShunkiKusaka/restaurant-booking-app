@@ -19,19 +19,21 @@ export default async function AdminDashboard() {
     orderBy: { createdAt: "asc" },
   });
 
-  const stats = {
-    totalRestaurants: await prisma.restaurant.count(),
-    pendingCount: await prisma.restaurant.count({ where: { status: "pending" } }),
-    totalReservations: await prisma.reservation.count(),
-    totalUsers: await prisma.user.count(),
-  };
+  // 4つの集計は互いに関係ないので、同時に問い合わせる
+  const [totalRestaurants, pendingCount, totalReservations, totalUsers] = await Promise.all([
+    prisma.restaurant.count(),
+    prisma.restaurant.count({ where: { status: "pending" } }),
+    prisma.reservation.count(),
+    prisma.user.count(),
+  ]);
+  const stats = { totalRestaurants, pendingCount, totalReservations, totalUsers };
 
   return (
     <main className="min-h-screen bg-gray-50 px-6 py-10">
       <div className="mx-auto max-w-3xl">
         <h1 className="text-2xl font-bold text-gray-900 mb-6">運営管理</h1>
 
-        <div className="grid grid-cols-4 gap-4 mb-10">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-10">
           <div className="rounded-lg bg-white border border-gray-200 p-4">
             <p className="text-xs text-gray-500">登録店舗</p>
             <p className="text-xl font-bold text-gray-900">{stats.totalRestaurants}</p>
@@ -59,7 +61,7 @@ export default async function AdminDashboard() {
             {pendingRestaurants.map((restaurant) => (
               <div
                 key={restaurant.id}
-                className="flex items-center justify-between rounded-lg border border-gray-200 bg-white px-4 py-3"
+                className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between rounded-lg border border-gray-200 bg-white px-4 py-3"
               >
                 <div>
                   <p className="font-medium text-gray-900">{restaurant.name}</p>
