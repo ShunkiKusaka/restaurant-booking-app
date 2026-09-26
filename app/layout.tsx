@@ -1,34 +1,31 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Noto_Sans_JP } from "next/font/google";
 import "./globals.css";
 import Providers from "./Providers.tsx";
 import Header from "./components/Header.tsx";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const notoSansJp = Noto_Sans_JP({
+  variable: "--font-noto-sans-jp",
   subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
+  weight: ["400", "500", "700"],
+  display: "swap",
 });
 
 export const metadata: Metadata = {
-  title: "飲食店予約アプリ",
-  description: "飲食店の検索・予約ができるアプリです",
+  title: "飲食店予約",
+  description: "お店の空き状況を見て、その場で予約できる飲食店予約システムのデモです",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html
-      lang="ja"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
-    >
+    <html lang="ja" className={`${notoSansJp.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col">
         <Providers>
           <Header />
-          {children}
+          <div className="flex-1">{children}</div>
+          <footer className="border-t border-line py-6 text-center text-xs text-muted">
+            このサイトは制作サンプルです。掲載している店舗・予約はすべて架空です。
+          </footer>
         </Providers>
       </body>
     </html>

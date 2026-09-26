@@ -1,26 +1,39 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
+/* 色と文字の基本設定。ここを変えると、アプリ全体の見た目が変わる */
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-paper: #f5f5f2;      /* 背景 */
+  --color-surface: #ffffff;    /* カードの面 */
+  --color-ink: #1d1c1a;        /* 文字 */
+  --color-muted: #6b6862;      /* 補足の文字 */
+  --color-line: #e3e1da;       /* 罫線 */
+  --color-brand: #1f4d3f;      /* メインの色(深い緑) */
+  --color-brand-dark: #163a2f;
+  --color-brand-soft: #e6efe9;
+  --color-accent: #b7832f;     /* 差し色(真鍮) */
+  --color-danger: #b42318;
+  --color-danger-soft: #fdecea;
+  --font-sans: var(--font-noto-sans-jp), "Hiragino Kaku Gothic ProN", "Yu Gothic", Meiryo, sans-serif;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+:root {
+  color-scheme: light;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--color-paper);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* キーボード操作のときだけ、はっきりした枠を出す */
+:focus-visible {
+  outline: 2px solid var(--color-brand);
+  outline-offset: 2px;
+}
+
+/* 数字の桁をそろえる(時刻や人数の一覧が揃って見える) */
+.tabular {
+  font-variant-numeric: tabular-nums;
 }

@@ -1,118 +1,111 @@
 import Link from "next/link";
-import { auth } from "../../../auth.ts";
 import { prisma } from "../../../lib/prisma.ts";
-import { redirect } from "next/navigation";
-import { formatJstDateTime } from "../../../lib/datetime.ts";
-import {
-  RESERVATION_STATUS_LABELS,
-  RESTAURANT_STATUS_LABELS,
-  label,
-} from "../../../lib/labels.ts";
-
-const RESTAURANT_BADGE: Record<string, string> = {
-  pending: "bg-amber-50 text-amber-700",
-  approved: "bg-emerald-50 text-emerald-700",
-  rejected: "bg-gray-100 text-gray-600",
-};
+import { requireOwner } from "../../../lib/owner.ts";
+import { parseJstDateTime, todayJst, toJstTimeString } from "../../../lib/datetime.ts";
+import { addDays, SEAT_OCCUPYING_STATUSES } from "../../../lib/booking.ts";
+import { formatWeekdays } from "../../../lib/labels.ts";
+import { Notice, PageContainer, RestaurantStatusBadge, ui } from "../../components/ui.tsx";
 
 export default async function OwnerDashboard({ searchParams }: PageProps<"/owner/dashboard">) {
-  const session = await auth();
-
   // ログインしてない、または owner じゃない場合ははじく
-  if (!session?.user) {
-    redirect("/login");
-  }
-  if (session.user.role !== "owner") {
-    redirect("/");
-  }
-
+  const user = await requireOwner();
   const { created } = await searchParams;
 
-  const [restaurants, reservations] = await Promise.all([
+  const today = todayJst();
+  const dayStart = parseJstDateTime(today, "00:00")!;
+  const dayEnd = parseJstDateTime(addDays(today, 1), "00:00")!;
+
+  const [restaurants, todays] = await Promise.all([
     prisma.restaurant.findMany({
-      where: { ownerId: session.user.id },
+      where: { ownerId: user.id },
       orderBy: { createdAt: "asc" },
     }),
-    // このオーナーが持ってる店舗の、これからの予約を関連データ込みで取得
+    // 今日の予約(席を使うものだけ)
     prisma.reservation.findMany({
       where: {
-        restaurant: { ownerId: session.user.id },
-        reservationDate: { gte: new Date() },
+        restaurant: { ownerId: user.id },
+        status: { in: SEAT_OCCUPYING_STATUSES },
+        reservationDate: { gte: dayStart, lt: dayEnd },
       },
-      include: { user: true, restaurant: true },
+      select: { restaurantId: true, numberOfGuests: true, reservationDate: true, status: true },
       orderBy: { reservationDate: "asc" },
     }),
   ]);
 
+  const now = Date.now();
+
   return (
-    <main className="min-h-screen bg-gray-50 px-6 py-10">
-      <div className="mx-auto max-w-3xl">
-        <div className="flex items-center justify-between gap-4 mb-6">
-          <h1 className="text-2xl font-bold text-gray-900">店舗管理</h1>
-          <Link
-            href="/owner/restaurants/new"
-            className="shrink-0 text-sm rounded-lg bg-gray-900 px-4 py-2 text-white hover:bg-gray-700"
-          >
-            + 店舗を登録
-          </Link>
-        </div>
-
-        {created === "1" && (
-          <p role="status" className="mb-6 rounded-lg bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
-            店舗を登録しました。運営の審査が終わると、予約の受付が始まります。
-          </p>
-        )}
-
-        <h2 className="text-sm font-bold text-gray-700 mb-3">あなたの店舗</h2>
-        {restaurants.length === 0 ? (
-          <p className="text-gray-400 text-sm mb-8">まだ店舗が登録されていません</p>
-        ) : (
-          <div className="space-y-2 mb-8">
-            {restaurants.map((r) => (
-              <div
-                key={r.id}
-                className="flex items-center justify-between gap-4 rounded-lg border border-gray-200 bg-white px-4 py-3"
-              >
-                <div>
-                  <p className="font-medium text-gray-900">{r.name}</p>
-                  <p className="text-sm text-gray-500">{r.address} ／ {r.seatCount}席</p>
-                </div>
-                <span
-                  className={`shrink-0 rounded-full px-3 py-1 text-xs font-medium ${RESTAURANT_BADGE[r.status] ?? ""}`}
-                >
-                  {label(RESTAURANT_STATUS_LABELS, r.status)}
-                </span>
-              </div>
-            ))}
-          </div>
-        )}
-
-        <h2 className="text-sm font-bold text-gray-700 mb-3">これからの予約</h2>
-        {reservations.length === 0 ? (
-          <p className="text-gray-400 text-sm">これからの予約はありません</p>
-        ) : (
-          <div className="space-y-3">
-            {reservations.map((r) => (
-              <div
-                key={r.id}
-                className={`flex items-center justify-between gap-4 rounded-lg border border-gray-200 bg-white px-4 py-3 ${r.status === "cancelled" ? "opacity-60" : ""}`}
-              >
-                <div>
-                  <p className="font-medium text-gray-900">
-                    {r.restaurant.name} ・ {r.user.name} 様
-                  </p>
-                  <p className="text-sm text-gray-500">
-                    {formatJstDateTime(r.reservationDate)} ／ {r.numberOfGuests}名
-                  </p>
-                </div>
-                <span className="shrink-0 text-sm text-gray-500">
-                  {label(RESERVATION_STATUS_LABELS, r.status)}
-                </span>
-              </div>
-            ))}
-          </div>
-        )}
+    <PageContainer>
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <h1 className="text-2xl font-bold text-ink">店舗管理</h1>
+        <Link href="/owner/restaurants/new" className={ui.btnPrimary}>+ 店舗を登録</Link>
       </div>
-    </main>
+
+      {created === "1" && (
+        <div className="mt-4">
+          <Notice>
+            店舗を登録しました。運営の審査が終わると、予約の受付が始まります。
+            審査の間に、「予約の設定」で営業時間や定休日を設定しておいてください。
+          </Notice>
+        </div>
+      )}
+
+      {restaurants.length === 0 ? (
+        <p className="mt-8 text-sm text-muted">まだ店舗が登録されていません。</p>
+      ) : (
+        <ul className="mt-6 grid gap-4 md:grid-cols-2">
+          {restaurants.map((r) => {
+            const mine = todays.filter((t) => t.restaurantId === r.id);
+            const groups = mine.length;
+            const guests = mine.reduce((sum, t) => sum + t.numberOfGuests, 0);
+            const next = mine.find((t) => t.status === "confirmed" && t.reservationDate.getTime() >= now);
+            return (
+              <li key={r.id} className={`${ui.card} flex flex-col p-5`}>
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <h2 className="truncate text-lg font-bold text-ink">{r.name}</h2>
+                    <p className="text-sm text-muted">
+                      {r.genre ? `${r.genre} ／ ` : ""}{r.seatCount}席 ／ 定休日 {formatWeekdays(r.closedWeekdays)}
+                    </p>
+                  </div>
+                  <RestaurantStatusBadge status={r.status} />
+                </div>
+
+                <dl className="mt-4 grid grid-cols-3 gap-2 rounded-lg bg-paper p-3 text-center">
+                  <div>
+                    <dt className="text-xs text-muted">今日の予約</dt>
+                    <dd className="tabular text-xl font-bold text-ink">{groups}<span className="ml-0.5 text-xs font-normal">組</span></dd>
+                  </div>
+                  <div>
+                    <dt className="text-xs text-muted">人数</dt>
+                    <dd className="tabular text-xl font-bold text-ink">{guests}<span className="ml-0.5 text-xs font-normal">名</span></dd>
+                  </div>
+                  <div>
+                    <dt className="text-xs text-muted">次の来店</dt>
+                    <dd className="tabular text-xl font-bold text-ink">
+                      {next ? toJstTimeString(next.reservationDate) : "―"}
+                    </dd>
+                  </div>
+                </dl>
+
+                <div className="mt-4 flex flex-wrap gap-2">
+                  <Link href={`/owner/restaurants/${r.id}/reservations`} className={ui.btnPrimary}>予約台帳</Link>
+                  <Link href={`/owner/restaurants/${r.id}/reservations/new`} className={ui.btnSecondary}>電話予約を登録</Link>
+                  <Link href={`/owner/restaurants/${r.id}/settings`} className={ui.btnSecondary}>予約の設定</Link>
+                </div>
+                <Link href={`/restaurants/${r.id}`} className="mt-3 text-xs text-muted underline">
+                  お客さんから見たページを確認する
+                </Link>
+                {r.status === "rejected" && (
+                  <p className="mt-3 text-xs text-danger">
+                    審査で却下されました。内容を見直して、運営にお問い合わせください。
+                  </p>
+                )}
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </PageContainer>
   );
 }

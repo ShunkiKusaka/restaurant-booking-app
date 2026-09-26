@@ -1,23 +1,18 @@
-import { auth } from "../../../../auth.ts";
-import { redirect } from "next/navigation";
+import Link from "next/link";
+import { requireOwner } from "../../../../lib/owner.ts";
+import { PageContainer, ui } from "../../../components/ui.tsx";
 import RestaurantForm from "./RestaurantForm.tsx";
 
 export default async function NewRestaurantPage() {
-  const session = await auth();
-
-  if (!session?.user) {
-    redirect("/login");
-  }
-  if (session.user.role !== "owner") {
-    redirect("/");
-  }
+  await requireOwner();
 
   return (
-    <main className="min-h-screen bg-gray-50 px-6 py-10">
-      <div className="mx-auto max-w-sm">
-        <h1 className="text-xl font-bold text-gray-900 mb-6">店舗を登録</h1>
+    <PageContainer width="narrow">
+      <Link href="/owner/dashboard" className="text-sm text-muted hover:text-ink">← 店舗管理</Link>
+      <h1 className="mt-3 mb-6 text-2xl font-bold text-ink">店舗を登録</h1>
+      <div className={`${ui.card} p-6`}>
         <RestaurantForm />
       </div>
-    </main>
+    </PageContainer>
   );
 }

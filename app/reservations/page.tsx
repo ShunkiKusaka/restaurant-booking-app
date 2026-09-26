@@ -1,18 +1,14 @@
+import Link from "next/link";
 import { auth } from "../../auth.ts";
 import { prisma } from "../../lib/prisma.ts";
 import { redirect } from "next/navigation";
-import { cancelReservation } from "../reservation-actions.ts";
 import { formatJstDateTime } from "../../lib/datetime.ts";
-import { RESERVATION_STATUS_LABELS, label } from "../../lib/labels.ts";
+import { formatReservationCode } from "../../lib/reservation-code.ts";
+import { PageContainer, ReservationStatusBadge, ui } from "../components/ui.tsx";
 
-export default async function MyReservationsPage({ searchParams }: PageProps<"/reservations">) {
+export default async function MyReservationsPage() {
   const session = await auth();
-
-  if (!session?.user) {
-    redirect("/login");
-  }
-
-  const { booked } = await searchParams;
+  if (!session?.user) redirect("/login");
 
   const reservations = await prisma.reservation.findMany({
     where: { userId: session.user.id },
@@ -22,73 +18,52 @@ export default async function MyReservationsPage({ searchParams }: PageProps<"/r
 
   const now = Date.now();
   const upcoming = reservations.filter(
-    (r) => r.reservationDate.getTime() > now && r.status === "confirmed"
+    (r) => r.status === "confirmed" && r.reservationDate.getTime() > now
   );
-  const others = reservations
-    .filter((r) => !upcoming.includes(r))
-    .reverse(); // 過去・キャンセル済みは新しい順
+  const history = reservations.filter((r) => !upcoming.includes(r)).reverse();
+
+  const Row = ({ r }: { r: (typeof reservations)[number] }) => (
+    <li>
+      <Link
+        href={`/reservations/${r.id}`}
+        className={`${ui.card} flex items-center justify-between gap-4 px-4 py-3 transition-colors hover:border-brand`}
+      >
+        <div className="min-w-0">
+          <p className="truncate font-medium text-ink">{r.restaurant.name}</p>
+          <p className="tabular text-sm text-muted">
+            {formatJstDateTime(r.reservationDate)} ／ {r.numberOfGuests}名
+          </p>
+          <p className="tabular text-xs text-muted">予約番号 {formatReservationCode(r.code)}</p>
+        </div>
+        <ReservationStatusBadge status={r.status} />
+      </Link>
+    </li>
+  );
 
   return (
-    <main className="min-h-screen bg-gray-50 px-6 py-10">
-      <div className="mx-auto max-w-2xl">
-        <h1 className="text-2xl font-bold text-gray-900 mb-6">あなたの予約</h1>
+    <PageContainer width="medium">
+      <h1 className="text-2xl font-bold text-ink">予約の確認</h1>
 
-        {booked === "1" && (
-          <p role="status" className="mb-6 rounded-lg bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
-            予約が完了しました。
-          </p>
-        )}
+      <h2 className={`${ui.sectionTitle} mt-8 mb-3`}>これからの予約</h2>
+      {upcoming.length === 0 ? (
+        <div className="space-y-3">
+          <p className="text-sm text-muted">これからの予約はありません。</p>
+          <Link href="/" className={ui.btnPrimary}>お店を探す</Link>
+        </div>
+      ) : (
+        <ul className="space-y-2">
+          {upcoming.map((r) => <Row key={r.id} r={r} />)}
+        </ul>
+      )}
 
-        <h2 className="text-sm font-bold text-gray-700 mb-3">これからの予約</h2>
-        {upcoming.length === 0 ? (
-          <p className="text-gray-400 text-sm mb-8">これからの予約はありません</p>
-        ) : (
-          <div className="space-y-3 mb-8">
-            {upcoming.map((r) => (
-              <div
-                key={r.id}
-                className="flex items-center justify-between gap-4 rounded-lg border border-gray-200 bg-white px-4 py-3"
-              >
-                <div>
-                  <p className="font-medium text-gray-900">{r.restaurant.name}</p>
-                  <p className="text-sm text-gray-500">
-                    {formatJstDateTime(r.reservationDate)} ／ {r.numberOfGuests}名
-                  </p>
-                </div>
-                <form action={cancelReservation.bind(null, r.id)}>
-                  <button type="submit" className="text-sm text-red-600 hover:underline">
-                    キャンセル
-                  </button>
-                </form>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {others.length > 0 && (
-          <>
-            <h2 className="text-sm font-bold text-gray-700 mb-3">過去・キャンセル済み</h2>
-            <div className="space-y-3">
-              {others.map((r) => (
-                <div
-                  key={r.id}
-                  className="flex items-center justify-between gap-4 rounded-lg border border-gray-200 bg-white px-4 py-3 opacity-80"
-                >
-                  <div>
-                    <p className="font-medium text-gray-900">{r.restaurant.name}</p>
-                    <p className="text-sm text-gray-500">
-                      {formatJstDateTime(r.reservationDate)} ／ {r.numberOfGuests}名
-                    </p>
-                  </div>
-                  <span className="text-sm text-gray-500">
-                    {r.status === "confirmed" ? "来店日を過ぎました" : label(RESERVATION_STATUS_LABELS, r.status)}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </>
-        )}
-      </div>
-    </main>
+      {history.length > 0 && (
+        <>
+          <h2 className={`${ui.sectionTitle} mt-10 mb-3`}>過去・キャンセルした予約</h2>
+          <ul className="space-y-2 opacity-90">
+            {history.map((r) => <Row key={r.id} r={r} />)}
+          </ul>
+        </>
+      )}
+    </PageContainer>
   );
 }

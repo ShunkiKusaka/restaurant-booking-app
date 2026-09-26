@@ -4,6 +4,7 @@ import { prisma } from "../../lib/prisma.ts";
 import { auth } from "../../auth.ts";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
+import { GENRES } from "../../lib/labels.ts";
 
 export type RestaurantFormState = { error?: string };
 
@@ -18,12 +19,14 @@ export async function createRestaurant(
   }
 
   const name = String(formData.get("name") ?? "").trim();
+  const genre = String(formData.get("genre") ?? "");
   const description = String(formData.get("description") ?? "").trim();
   const address = String(formData.get("address") ?? "").trim();
   const phoneNumber = String(formData.get("phoneNumber") ?? "").trim();
   const seatCount = Number(formData.get("seatCount"));
 
   if (!name || name.length > 80) return { error: "店舗名は1〜80文字で入力してください" };
+  if (genre && !GENRES.includes(genre)) return { error: "ジャンルを選び直してください" };
   if (description.length > 500) return { error: "紹介文は500文字以内で入力してください" };
   if (!address || address.length > 200) return { error: "住所を入力してください" };
   if (!/^[0-9+\-() ]{6,20}$/.test(phoneNumber)) {
@@ -38,6 +41,7 @@ export async function createRestaurant(
     data: {
       ownerId: session.user.id,
       name,
+      genre: genre || null,
       description: description || null,
       address,
       phoneNumber,

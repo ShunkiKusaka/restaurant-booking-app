@@ -3,8 +3,9 @@
 import { prisma } from "../lib/prisma.ts";
 import { auth } from "../auth.ts";
 import { revalidatePath } from "next/cache";
+import { canCustomerCancel } from "../lib/booking.ts";
 
-// 予約のキャンセル。記録を残すため、削除せずに「キャンセル済み」に変える。
+// お客さん自身による予約のキャンセル。記録を残すため、削除せずに「キャンセル」に変える。
 // フォームから呼ばれるので、2つ目の引数に FormData が渡ってくる(使わない)。
 export async function cancelReservation(reservationId: string, _formData?: FormData) {
   const session = await auth();
@@ -12,23 +13,25 @@ export async function cancelReservation(reservationId: string, _formData?: FormD
 
   const reservation = await prisma.reservation.findUnique({
     where: { id: reservationId },
+    include: { restaurant: true },
   });
 
-  // 本人の予約で、まだ来店前の「予約確定」のものだけキャンセルできる
+  // 本人の予約で、「予約確定」のもの、かつキャンセル期限の前だけキャンセルできる
   if (
     !reservation ||
     reservation.userId !== session.user.id ||
     reservation.status !== "confirmed" ||
-    reservation.reservationDate.getTime() <= Date.now()
+    !canCustomerCancel(reservation.reservationDate, reservation.restaurant.cancelDeadlineHours, new Date())
   ) {
     return;
   }
 
   await prisma.reservation.update({
     where: { id: reservationId },
-    data: { status: "cancelled" },
+    data: { status: "cancelled", cancelledAt: new Date() },
   });
 
   revalidatePath("/reservations");
-  revalidatePath("/owner/dashboard");
+  revalidatePath(`/reservations/${reservationId}`);
+  revalidatePath(`/restaurants/${reservation.restaurantId}`);
 }

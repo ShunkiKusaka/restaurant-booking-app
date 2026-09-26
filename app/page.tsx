@@ -1,73 +1,116 @@
 import Link from "next/link";
 import { prisma } from "../lib/prisma.ts";
-import { auth } from "../auth.ts";
-import { todayJst } from "../lib/datetime.ts";
-import ReservationForm from "./components/ReservationForm.tsx";
+import { GENRES, formatWeekdays } from "../lib/labels.ts";
+import { PageContainer, ui } from "./components/ui.tsx";
 
-export default async function Home() {
-  const session = await auth();
+function first(v: string | string[] | undefined): string {
+  return (Array.isArray(v) ? v[0] : v)?.trim() ?? "";
+}
+
+export default async function Home({ searchParams }: PageProps<"/">) {
+  const params = await searchParams;
+  const q = first(params.q).slice(0, 50);
+  const genre = first(params.genre);
+
   const restaurants = await prisma.restaurant.findMany({
-    where: { status: "approved" },
+    where: {
+      status: "approved",
+      ...(genre ? { genre } : {}),
+      ...(q
+        ? {
+            OR: [
+              { name: { contains: q, mode: "insensitive" } },
+              { description: { contains: q, mode: "insensitive" } },
+              { address: { contains: q, mode: "insensitive" } },
+            ],
+          }
+        : {}),
+    },
     orderBy: { createdAt: "asc" },
   });
-  const minDate = todayJst();
-  const role = session?.user?.role;
+
+  const searching = Boolean(q || genre);
 
   return (
-    <main className="min-h-screen bg-gray-50 px-6 py-10">
-      <div className="mx-auto max-w-4xl">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">
-          飲食店を探す
-        </h1>
-        <p className="text-gray-500 mb-8">
-          お近くのお店を検索して、その場で予約できます
-        </p>
+    <>
+      <section className="border-b border-line bg-surface">
+        <div className="mx-auto max-w-5xl px-4 py-10 sm:px-6 sm:py-14">
+          <h1 className="text-2xl font-bold leading-snug text-ink sm:text-4xl">
+            空いている時間が、
+            <br className="sm:hidden" />
+            その場で分かる。
+          </h1>
+          <p className="mt-3 text-sm text-muted sm:text-base">
+            お店と日付を選ぶと、予約できる時間がすぐに表示されます。
+          </p>
 
-        {restaurants.length === 0 && (
-          <p className="text-gray-400 text-sm">現在、予約できるお店はありません</p>
-        )}
-
-        <div className="grid gap-4 sm:grid-cols-2">
-          {restaurants.map((restaurant) => (
-            <div
-              key={restaurant.id}
-              className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm hover:shadow-md transition-shadow"
-            >
-              <h2 className="text-lg font-semibold text-gray-900">
-                {restaurant.name}
-              </h2>
-              <p className="mt-1 text-sm text-gray-500">
-                {restaurant.description}
-              </p>
-              <p className="mt-1 text-sm text-gray-400">
-                {restaurant.address}
-              </p>
-              <p className="mt-1 text-sm text-gray-400">
-                席数: {restaurant.seatCount}席
-              </p>
-
-              {!session?.user ? (
-                <Link
-                  href="/login"
-                  className="mt-4 block w-full rounded-lg border border-gray-300 py-2 text-center text-sm font-medium text-gray-700 hover:bg-gray-50"
-                >
-                  ログインして予約する
-                </Link>
-              ) : role === "customer" ? (
-                <ReservationForm
-                  restaurantId={restaurant.id}
-                  seatCount={restaurant.seatCount}
-                  minDate={minDate}
-                />
-              ) : (
-                <p className="mt-4 text-xs text-gray-400">
-                  予約は一般ユーザーのアカウントで行えます
-                </p>
-              )}
-            </div>
-          ))}
+          <form action="/" method="get" className="mt-6 flex flex-col gap-2 sm:flex-row" role="search">
+            <label htmlFor="q" className="sr-only">キーワード</label>
+            <input
+              id="q"
+              name="q"
+              defaultValue={q}
+              placeholder="店名・エリアで探す(例:渋谷)"
+              className={`${ui.input} sm:flex-1`}
+            />
+            <label htmlFor="genre" className="sr-only">ジャンル</label>
+            <select id="genre" name="genre" defaultValue={genre} className={`${ui.input} sm:w-44`}>
+              <option value="">すべてのジャンル</option>
+              {GENRES.map((g) => (
+                <option key={g} value={g}>{g}</option>
+              ))}
+            </select>
+            <button type="submit" className={ui.btnPrimary}>検索する</button>
+          </form>
         </div>
-      </div>
-    </main>
+      </section>
+
+      <PageContainer>
+        <div className="mb-4 flex items-baseline justify-between gap-4">
+          <h2 className={ui.sectionTitle}>
+            {searching ? `検索結果 ${restaurants.length}件` : "予約できるお店"}
+          </h2>
+          {searching && (
+            <Link href="/" className="text-sm text-muted underline">条件をクリア</Link>
+          )}
+        </div>
+
+        {restaurants.length === 0 ? (
+          <p className="text-sm text-muted">
+            {searching ? "条件に合うお店が見つかりませんでした。" : "現在、予約できるお店はありません。"}
+          </p>
+        ) : (
+          <ul className="grid gap-4 sm:grid-cols-2">
+            {restaurants.map((r) => (
+              <li key={r.id}>
+                <Link
+                  href={`/restaurants/${r.id}`}
+                  className={`${ui.card} group flex h-full flex-col p-5 transition-colors hover:border-brand`}
+                >
+                  {r.genre && (
+                    <span className="mb-2 self-start rounded-full bg-paper px-2.5 py-0.5 text-xs text-muted">
+                      {r.genre}
+                    </span>
+                  )}
+                  <h3 className="text-lg font-bold text-ink group-hover:text-brand">{r.name}</h3>
+                  {r.description && (
+                    <p className="mt-1 line-clamp-2 text-sm text-muted">{r.description}</p>
+                  )}
+                  <dl className="mt-4 grid grid-cols-[4.5rem_1fr] gap-y-1 text-sm">
+                    <dt className="text-muted">住所</dt>
+                    <dd className="text-ink">{r.address}</dd>
+                    <dt className="text-muted">受付時間</dt>
+                    <dd className="tabular text-ink">{r.openTime}〜{r.lastBookingTime}</dd>
+                    <dt className="text-muted">定休日</dt>
+                    <dd className="text-ink">{formatWeekdays(r.closedWeekdays)}</dd>
+                  </dl>
+                  <span className="mt-4 text-sm font-medium text-brand">空き状況を見る</span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
+      </PageContainer>
+    </>
   );
 }

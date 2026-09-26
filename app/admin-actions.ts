@@ -6,7 +6,8 @@ import { revalidatePath } from "next/cache";
 
 export async function updateRestaurantStatus(
   restaurantId: string,
-  newStatus: "approved" | "rejected"
+  newStatus: "approved" | "rejected",
+  _formData?: FormData
 ) {
   const session = await auth();
 
@@ -29,4 +30,6 @@ export async function updateRestaurantStatus(
   //このページのサーバーのキャッシュを削除 
   //topページのキャッシュも削除しないと他ページでやった処理の結果がここにも反映されない
   //例えば他のページでやったCRUD処理の結果など
+  revalidatePath(`/restaurants/${restaurantId}`); // 店舗ページとオーナーの画面にも審査結果を反映
+  revalidatePath("/owner/dashboard");
 }

@@ -66,6 +66,7 @@ model Restaurant {
   ownerId      String
   owner        User     @relation(fields: [ownerId], references: [id])
   name         String
+  genre        String?  // ジャンル(フレンチ、焼肉など)
   description  String?
   address      String
   phoneNumber  String
@@ -73,17 +74,36 @@ model Restaurant {
   status       String   @default("pending") // "pending" | "approved" | "rejected"
   createdAt    DateTime @default(now())
 
+  // ---- 予約の受付設定(店舗オーナーが設定画面で変更できる) ----
+  openTime               String @default("17:00") // 受付開始(日本時間 "HH:MM")
+  lastBookingTime        String @default("21:00") // 最終受付(この時刻の枠まで予約できる)
+  closedWeekdays         Int[]  @default([])      // 定休日の曜日(0=日曜 〜 6=土曜)
+  stayMinutes            Int    @default(120)     // 1組の滞在時間の目安(分)
+  maxPartySize           Int    @default(8)       // Web予約で受け付ける1組の最大人数
+  bookingDeadlineMinutes Int    @default(60)      // 来店の何分前まで予約できるか
+  cancelDeadlineHours    Int    @default(24)      // 来店の何時間前までお客さん自身でキャンセルできるか
+
   reservations Reservation[]
 }
 
 model Reservation {
   id               String     @id @default(cuid())
-  userId           String
-  user             User       @relation(fields: [userId], references: [id])
+  code             String?    @unique // 予約番号(お客さんに伝える短い番号)
+  // Web予約はログイン中のユーザー、電話予約はユーザーなし(guestName を使う)
+  userId           String?
+  user             User?      @relation(fields: [userId], references: [id], onDelete: Restrict)
   restaurantId     String
   restaurant       Restaurant @relation(fields: [restaurantId], references: [id])
   reservationDate  DateTime
   numberOfGuests   Int
-  status           String     @default("confirmed") // "confirmed" | "cancelled" | "completed"
+  status           String     @default("confirmed") // "confirmed" | "completed" | "cancelled" | "no_show"
+  source           String     @default("web") // "web" | "phone"
+  guestName        String?    // 電話予約のお客さんの名前
+  guestPhone       String?    // 連絡先の電話番号
+  occasion         String?    // 利用目的(誕生日、接待など)
+  note             String?    // ご要望(アレルギーなど)
+  cancelledAt      DateTime?
   createdAt        DateTime   @default(now())
+
+  @@index([restaurantId, reservationDate])
 }

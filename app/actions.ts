@@ -5,14 +5,13 @@ import { auth } from "../auth.ts";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { parseJstDateTime } from "../lib/datetime.ts";
-import {
-  BOOKING_WINDOW_DAYS,
-  DEFAULT_STAY_MINUTES,
-  MAX_GUESTS_PER_BOOKING,
-  hasCapacity,
-} from "../lib/booking.ts";
+import { checkBookingRequest } from "../lib/booking.ts";
+import { OCCASIONS } from "../lib/labels.ts";
+import { createReservationIfAvailable } from "../lib/create-reservation.ts";
 
 export type ReservationState = { error?: string };
+
+const PHONE_RE = /^[0-9+\-() ]{10,20}$/;
 
 export async function createReservation(
   _prevState: ReservationState,
@@ -31,66 +30,49 @@ export async function createReservation(
   const date = String(formData.get("date") ?? "");
   const time = String(formData.get("time") ?? "");
   const guests = Number(formData.get("guests"));
+  const phone = String(formData.get("phone") ?? "").trim();
+  const occasionInput = String(formData.get("occasion") ?? "");
+  const note = String(formData.get("note") ?? "").trim();
 
-  // 日時は必ず日本時間として解釈する(サーバーはUTCで動いているため)
-  const reservationDate = parseJstDateTime(date, time);
-  if (!reservationDate) {
-    return { error: "日付と時間を正しく入力してください" };
+  if (!PHONE_RE.test(phone)) {
+    return { error: "当日連絡がつく電話番号を、数字とハイフンで入力してください" };
   }
-
-  const now = Date.now();
-  if (reservationDate.getTime() <= now) {
-    return { error: "過去の日時は予約できません" };
+  if (note.length > 300) {
+    return { error: "ご要望は300文字以内で入力してください" };
   }
-  if (reservationDate.getTime() > now + BOOKING_WINDOW_DAYS * 24 * 60 * 60_000) {
-    return { error: `予約は${BOOKING_WINDOW_DAYS}日先までです` };
-  }
-
-  if (!Number.isInteger(guests) || guests < 1 || guests > MAX_GUESTS_PER_BOOKING) {
-    return { error: `人数は1〜${MAX_GUESTS_PER_BOOKING}名で入力してください` };
-  }
+  const occasion = OCCASIONS.includes(occasionInput) ? occasionInput : null;
 
   // 公開中(承認済み)の店舗だけ予約できる
   const restaurant = await prisma.restaurant.findUnique({ where: { id: restaurantId } });
   if (!restaurant || restaurant.status !== "approved") {
     return { error: "このお店は現在予約を受け付けていません" };
   }
-  if (guests > restaurant.seatCount) {
-    return { error: `このお店は${restaurant.seatCount}名までです` };
-  }
 
-  // その時間帯に重なる予約を取り出して、席が足りるか確認する
-  const stayMs = DEFAULT_STAY_MINUTES * 60_000;
-  const overlapping = await prisma.reservation.findMany({
-    where: {
-      restaurantId,
-      status: "confirmed",
-      reservationDate: {
-        gt: new Date(reservationDate.getTime() - stayMs),
-        lt: new Date(reservationDate.getTime() + stayMs),
-      },
-    },
-    select: { reservationDate: true, numberOfGuests: true },
-  });
+  // 日時は必ず日本時間として解釈する(サーバーはUTCで動いているため)
+  const problem = checkBookingRequest(restaurant, date, time, guests, new Date());
+  if (problem) return { error: problem };
+  const start = parseJstDateTime(date, time)!;
 
-  const existing = overlapping.map((r) => ({
-    start: r.reservationDate,
-    guests: r.numberOfGuests,
-  }));
-  if (!hasCapacity(existing, reservationDate, guests, restaurant.seatCount)) {
-    return { error: "その時間は満席です。別の時間をお選びください" };
-  }
-
-  await prisma.reservation.create({
+  const reservation = await createReservationIfAvailable({
+    restaurantId,
+    seatCount: restaurant.seatCount,
+    stayMinutes: restaurant.stayMinutes,
+    start,
+    guests,
     data: {
       userId: session.user.id,
-      restaurantId,
-      reservationDate,
-      numberOfGuests: guests,
-      status: "confirmed",
+      source: "web",
+      guestPhone: phone,
+      occasion,
+      note: note || null,
     },
   });
 
+  if (!reservation) {
+    return { error: "申し訳ありません。ちょうど満席になりました。別の時間をお選びください" };
+  }
+
   revalidatePath("/reservations");
-  redirect("/reservations?booked=1");
+  revalidatePath(`/restaurants/${restaurantId}`);
+  redirect(`/reservations/${reservation.id}?new=1`);
 }

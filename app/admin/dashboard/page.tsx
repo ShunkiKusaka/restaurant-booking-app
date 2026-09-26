@@ -1,7 +1,11 @@
+import Link from "next/link";
 import { auth } from "../../../auth.ts";
 import { prisma } from "../../../lib/prisma.ts";
 import { redirect } from "next/navigation";
 import { updateRestaurantStatus } from "../../admin-actions.ts";
+import { formatJstDateTime } from "../../../lib/datetime.ts";
+import { PageContainer, RestaurantStatusBadge, ui } from "../../components/ui.tsx";
+import ConfirmButton from "../../components/ConfirmButton.tsx";
 
 export default async function AdminDashboard() {
   const session = await auth();
@@ -13,95 +17,101 @@ export default async function AdminDashboard() {
     redirect("/");
   }
 
-  const pendingRestaurants = await prisma.restaurant.findMany({
-    where: { status: "pending" },
-    include: { owner: true },
-    orderBy: { createdAt: "asc" },
-  });
-
-  // 4つの集計は互いに関係ないので、同時に問い合わせる
-  const [totalRestaurants, pendingCount, totalReservations, totalUsers] = await Promise.all([
+  // 集計と一覧は互いに関係ないので、同時に問い合わせる
+  const [restaurants, totalRestaurants, pendingCount, upcomingReservations, totalUsers] = await Promise.all([
+    prisma.restaurant.findMany({
+      include: { owner: true },
+      orderBy: { createdAt: "desc" },
+    }),
     prisma.restaurant.count(),
     prisma.restaurant.count({ where: { status: "pending" } }),
-    prisma.reservation.count(),
+    prisma.reservation.count({ where: { status: "confirmed", reservationDate: { gte: new Date() } } }),
     prisma.user.count(),
   ]);
-  const stats = { totalRestaurants, pendingCount, totalReservations, totalUsers };
+
+  const pending = restaurants.filter((r) => r.status === "pending");
+  const others = restaurants.filter((r) => r.status !== "pending");
+
+  const stats = [
+    { k: "登録店舗", v: totalRestaurants },
+    { k: "審査待ち", v: pendingCount, highlight: pendingCount > 0 },
+    { k: "これからの予約", v: upcomingReservations },
+    { k: "利用者数", v: totalUsers },
+  ];
 
   return (
-    <main className="min-h-screen bg-gray-50 px-6 py-10">
-      <div className="mx-auto max-w-3xl">
-        <h1 className="text-2xl font-bold text-gray-900 mb-6">運営管理</h1>
+    <PageContainer>
+      <h1 className="text-2xl font-bold text-ink">運営管理</h1>
 
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-10">
-          <div className="rounded-lg bg-white border border-gray-200 p-4">
-            <p className="text-xs text-gray-500">登録店舗</p>
-            <p className="text-xl font-bold text-gray-900">{stats.totalRestaurants}</p>
+      <dl className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
+        {stats.map((s) => (
+          <div key={s.k} className={`${ui.card} p-4`}>
+            <dt className="text-xs text-muted">{s.k}</dt>
+            <dd className={`tabular mt-1 text-2xl font-bold ${s.highlight ? "text-accent" : "text-ink"}`}>{s.v}</dd>
           </div>
-          <div className="rounded-lg bg-white border border-gray-200 p-4">
-            <p className="text-xs text-gray-500">審査待ち</p>
-            <p className="text-xl font-bold text-amber-500">{stats.pendingCount}</p>
-          </div>
-          <div className="rounded-lg bg-white border border-gray-200 p-4">
-            <p className="text-xs text-gray-500">総予約数</p>
-            <p className="text-xl font-bold text-gray-900">{stats.totalReservations}</p>
-          </div>
-          <div className="rounded-lg bg-white border border-gray-200 p-4">
-            <p className="text-xs text-gray-500">利用者数</p>
-            <p className="text-xl font-bold text-gray-900">{stats.totalUsers}</p>
-          </div>
-        </div>
+        ))}
+      </dl>
 
-        <h2 className="text-lg font-bold text-gray-900 mb-4">審査待ちの店舗</h2>
-
-        {pendingRestaurants.length === 0 ? (
-          <p className="text-gray-400 text-sm">審査待ちの店舗はありません</p>
-        ) : (
-          <div className="space-y-3">
-            {pendingRestaurants.map((restaurant) => (
-              <div
-                key={restaurant.id}
-                className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between rounded-lg border border-gray-200 bg-white px-4 py-3"
-              >
-                <div>
-                  <p className="font-medium text-gray-900">{restaurant.name}</p>
-                  <p className="text-sm text-gray-500">
-                    {restaurant.address} ・ オーナー: {restaurant.owner.name}
-                  </p>
-                </div>
-                <div className="flex gap-2">
-                  <form
-                    action={async () => {
-                      "use server";
-                      await updateRestaurantStatus(restaurant.id, "approved");
-                    }}
-                  >
-                    <button
-                      type="submit"
-                      className="px-3 py-1.5 text-sm rounded-lg bg-emerald-600 text-white hover:bg-emerald-700"
-                    >
-                      承認
-                    </button>
-                  </form>
-                  <form
-                    action={async () => {
-                      "use server";
-                      await updateRestaurantStatus(restaurant.id, "rejected");
-                    }}
-                  >
-                    <button
-                      type="submit"
-                      className="px-3 py-1.5 text-sm rounded-lg border border-gray-300 text-gray-600 hover:bg-gray-50"
-                    >
-                      却下
-                    </button>
-                  </form>
-                </div>
+      <h2 className={`${ui.sectionTitle} mt-10 mb-3`}>審査待ちの店舗</h2>
+      {pending.length === 0 ? (
+        <p className="text-sm text-muted">審査待ちの店舗はありません。</p>
+      ) : (
+        <ul className="space-y-2">
+          {pending.map((r) => (
+            <li key={r.id} className={`${ui.card} flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between`}>
+              <div className="min-w-0">
+                <p className="font-medium text-ink">
+                  {r.name}
+                  {r.genre && <span className="ml-2 text-sm font-normal text-muted">{r.genre}</span>}
+                </p>
+                <p className="text-sm text-muted">
+                  {r.address} ／ {r.seatCount}席 ／ オーナー: {r.owner.name}
+                </p>
+                <p className="text-xs text-muted">申請 {formatJstDateTime(r.createdAt)}</p>
+                <Link href={`/restaurants/${r.id}`} className="text-xs text-muted underline">
+                  ページを確認
+                </Link>
               </div>
-            ))}
-          </div>
-        )}
-      </div>
-    </main>
+              <div className="flex shrink-0 gap-2">
+                <form action={updateRestaurantStatus.bind(null, r.id, "approved")}>
+                  <button type="submit" className={`${ui.btnPrimary} px-3 py-1.5`}>承認</button>
+                </form>
+                <form action={updateRestaurantStatus.bind(null, r.id, "rejected")}>
+                  <ConfirmButton message={`「${r.name}」を却下します。よろしいですか?`} className={`${ui.btnSecondary} px-3 py-1.5`}>
+                    却下
+                  </ConfirmButton>
+                </form>
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      <h2 className={`${ui.sectionTitle} mt-10 mb-3`}>すべての店舗</h2>
+      <ul className="space-y-2">
+        {others.map((r) => (
+          <li key={r.id} className={`${ui.card} flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between`}>
+            <div className="min-w-0">
+              <p className="font-medium text-ink">{r.name}</p>
+              <p className="text-sm text-muted">{r.address} ／ オーナー: {r.owner.name}</p>
+            </div>
+            <div className="flex shrink-0 items-center gap-3">
+              <RestaurantStatusBadge status={r.status} />
+              {r.status === "approved" ? (
+                <form action={updateRestaurantStatus.bind(null, r.id, "rejected")}>
+                  <ConfirmButton message={`「${r.name}」の公開を停止します。よろしいですか?`} className="text-sm text-muted underline">
+                    公開を停止
+                  </ConfirmButton>
+                </form>
+              ) : (
+                <form action={updateRestaurantStatus.bind(null, r.id, "approved")}>
+                  <button type="submit" className="text-sm text-brand underline">承認する</button>
+                </form>
+              )}
+            </div>
+          </li>
+        ))}
+      </ul>
+    </PageContainer>
   );
 }
