@@ -128,14 +128,24 @@ git push  git hubに保存
 
 
 1-register-no-admin.patch	
-会員登録で運営になれない問題、登録画面のエラー表示	
-register-action.ts、
-register/RegisterForm.tsx、
-register/page.tsx
+<会員登録で運営になれない問題、登録画面のエラー表示>
+変更した内容
+↓
+登録の際、運営として登録できないようにする
+同じメールでもう一度登録したとき、フォームの中に「このメールアドレスはすでに登録されています」と出るように修正
+
+変更ファイル
+↓
+・register-action.ts、
+・register/RegisterForm.tsx、
+・register/page.tsx
 
 
 2-login-errors.patch	
-ログインのエラー表示、登録完了の表示	
+<ログインのエラー表示、登録完了の表示>
+
+変更ファイル
+↓
 login/LoginForm.tsx、
 login/page.tsx
 
