@@ -128,16 +128,31 @@ git push  git hubに保存
 
 
 1-register-no-admin.patch	
-会員登録で運営になれない問題、登録画面のエラー表示	
-register-action.ts、
-register/RegisterForm.tsx、
-register/page.tsx
+<会員登録で運営になれない問題、登録画面のエラー表示>
+変更した内容
+↓
+登録の際、運営として登録できないようにする
+同じメールでもう一度登録したとき、フォームの中に「このメールアドレスはすでに登録されています」と出るように修正
+
+変更ファイル
+↓
+・register-action.ts、
+・register/RegisterForm.tsx、
+・register/page.tsx
 
 
 2-login-errors.patch	
-ログインのエラー表示、登録完了の表示	
+<ログインのエラー表示、登録完了の表示>
+変更した内容
+↓
+ログイン成功後、緑色の成功メッセージを出す
+失敗したら、赤色の警告文字を出す
+新規登録成功後、緑色の成功メッセージを出す
+
+変更ファイル
+↓
 login/LoginForm.tsx、
-login/page.tsx
+login/page.tsxn
 
 
 3-reservation-time-and-checks.patch	
@@ -155,9 +170,11 @@ lib/labels.ts、
 reservation-actions.ts、
 reservations/page.tsx
 
+
 5-owner-review-status.patch	
 オーナーの店舗の審査状況、店舗登録のエラー表示	
 owner/ の4ファイル
+
 
 6-admin-and-header.patch	
 運営画面のスマホ対応、ヘッダーの日本語表示	
