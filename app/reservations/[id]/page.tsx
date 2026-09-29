@@ -8,23 +8,28 @@ import { formatReservationCode } from "../../../lib/reservation-code.ts";
 import { cancelReservation } from "../../reservation-actions.ts";
 import { Notice, PageContainer, ReservationStatusBadge, ui } from "../../components/ui.tsx";
 import ConfirmButton from "../../components/ConfirmButton.tsx";
+import ReviewForm from "../../components/ReviewForm.tsx";
+import { Stars } from "../../components/Stars.tsx";
+import { deleteReview } from "../../review-actions.ts";
 
 export default async function ReservationDetailPage({ params, searchParams }: PageProps<"/reservations/[id]">) {
   const { id } = await params;
-  const { new: isNew } = await searchParams;
+  const { new: isNew, reviewed, edit } = await searchParams;
 
   const session = await auth();
   if (!session?.user) redirect("/login");
 
   const r = await prisma.reservation.findUnique({
     where: { id },
-    include: { restaurant: true },
+    include: { restaurant: true, review: true },
   });
   // 他人の予約は、存在しないものとして扱う
   if (!r || r.userId !== session.user.id) notFound();
 
   const upcoming = r.status === "confirmed" && r.reservationDate.getTime() > Date.now();
   const cancellable = upcoming && canCustomerCancel(r.reservationDate, r.restaurant.cancelDeadlineHours, new Date());
+  const review = r.review;
+  const editing = edit === "1" && review !== null;
 
   return (
     <PageContainer width="medium">
@@ -76,6 +81,69 @@ export default async function ReservationDetailPage({ params, searchParams }: Pa
           </ConfirmButton>
         </form>
       )}
+      {/* ---- 口コミ(来店済みの予約だけ) ---- */}
+      {(r.status === "completed" || review) && (
+        <section aria-labelledby="my-review" className={`${ui.card} mt-6 p-5`}>
+          <h2 id="my-review" className={ui.sectionTitle}>
+            {review ? "あなたの口コミ" : "口コミを書く"}
+          </h2>
+          {reviewed === "1" && (
+            <div className="mt-3">
+              <Notice>口コミを投稿しました。ありがとうございます。</Notice>
+            </div>
+          )}
+
+          {!review && (
+            <div className="mt-4">
+              <p className="mb-4 text-sm text-muted">
+                {r.restaurant.name}はいかがでしたか。お店のページに、名字だけで表示されます。
+              </p>
+              <ReviewForm reservationId={r.id} />
+            </div>
+          )}
+
+          {review && editing && (
+            <div className="mt-4">
+              <ReviewForm
+                reservationId={r.id}
+                defaultRating={review.rating}
+                defaultComment={review.comment}
+                submitLabel="書き直した内容で保存する"
+              />
+              <Link href={`/reservations/${r.id}`} className="mt-3 inline-block text-sm text-muted underline">
+                書き直すのをやめる
+              </Link>
+            </div>
+          )}
+
+          {review && !editing && (
+            <div className="mt-3">
+              {review.hidden && (
+                <div className="mb-3">
+                  <Notice tone="error">この口コミは、運営が非表示にしました。お店のページには表示されていません。</Notice>
+                </div>
+              )}
+              <Stars value={review.rating} className="text-lg" />
+              <p className="mt-2 whitespace-pre-line text-sm leading-7 text-ink">{review.comment}</p>
+              {review.ownerReply && (
+                <div className="mt-3 rounded-lg bg-paper px-4 py-3">
+                  <p className="text-xs font-bold text-muted">お店からの返信</p>
+                  <p className="mt-1 whitespace-pre-line text-sm leading-7 text-ink">{review.ownerReply}</p>
+                </div>
+              )}
+              <div className="mt-4 flex flex-wrap items-center gap-3">
+                <Link href={`/reservations/${r.id}?edit=1`} className={`${ui.btnSecondary} py-2`}>書き直す</Link>
+                <form action={deleteReview.bind(null, review.id)}>
+                  <ConfirmButton message="この口コミを削除します。よろしいですか?" className="text-sm text-muted underline">
+                    削除する
+                  </ConfirmButton>
+                </form>
+              </div>
+            </div>
+          )}
+        </section>
+      )}
+
       {upcoming && !cancellable && (
         <div className="mt-6">
           <Notice tone="info">

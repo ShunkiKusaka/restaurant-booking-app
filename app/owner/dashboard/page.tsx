@@ -92,6 +92,9 @@ export default async function OwnerDashboard({ searchParams }: PageProps<"/owner
                   <Link href={`/owner/restaurants/${r.id}/reservations`} className={ui.btnPrimary}>予約台帳</Link>
                   <Link href={`/owner/restaurants/${r.id}/reservations/new`} className={ui.btnSecondary}>電話予約を登録</Link>
                   <Link href={`/owner/restaurants/${r.id}/settings`} className={ui.btnSecondary}>予約の設定</Link>
+                  <Link href={`/owner/restaurants/${r.id}/reviews`} className={ui.btnSecondary}>
+                    口コミ{r.reviewCount > 0 ? `(${r.reviewCount}件)` : ""}
+                  </Link>
                 </div>
                 <Link href={`/restaurants/${r.id}`} className="mt-3 text-xs text-muted underline">
                   お客さんから見たページを確認する

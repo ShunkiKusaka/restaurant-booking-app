@@ -8,6 +8,7 @@ import bcrypt from "bcryptjs";
 import { parseJstDateTime, todayJst } from "../lib/datetime.ts";
 import { addDays, isClosedDay } from "../lib/booking.ts";
 import { generateReservationCode } from "../lib/reservation-code.ts";
+import { refreshRestaurantRating } from "../lib/reviews.ts";
 
 const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
 const prisma = new PrismaClient({ adapter });
@@ -17,7 +18,38 @@ const DEMO_USERS = [
   { email: "owner@example.com", name: "日向 誠", role: "owner" },
   { email: "customer@example.com", name: "田中 花子", role: "customer" },
   { email: "customer2@example.com", name: "佐藤 健", role: "customer" },
+  // 口コミの投稿者を増やすための、デモ用のお客さん(ログイン画面のボタンはない)
+  { email: "customer3@example.com", name: "鈴木 一郎", role: "customer" },
+  { email: "customer4@example.com", name: "高橋 美咲", role: "customer" },
+  { email: "customer5@example.com", name: "伊藤 大輔", role: "customer" },
 ] as const;
+
+// デモ用の口コミ(すべて架空。画面にも「デモ用の架空の口コミです」と表示される)
+// [星の数, コメント, 店主の返信(なければ null)]
+const DEMO_REVIEWS: Record<string, [number, string, string | null][]> = {
+  "焼肉 ひかり": [
+    [5, "タンとハラミが特においしかったです。個室でゆっくり話せたので、家族の食事会にぴったりでした。", "ご家族でのご来店、ありがとうございました。またお待ちしております。"],
+    [4, "お肉の質が高いのに、値段は良心的。週末は混むので、予約して行くのがおすすめです。", null],
+    [4, "スタッフの方が焼き方を教えてくれて、初めてでも楽しめました。", null],
+    [5, "誕生日で伺ったら、デザートにメッセージを入れてもらえました。うれしかったです。", "お誕生日おめでとうございました!またのご来店をお待ちしております。"],
+  ],
+  "トラットリア ベッラ": [
+    [5, "薪窯のマルゲリータは、生地がもちもちで香ばしい。パスタも手打ちで本格的でした。", "ありがとうございます。季節のパスタもぜひお試しください。"],
+    [4, "ランチで利用しました。前菜の盛り合わせがボリュームたっぷりで満足です。", null],
+    [3, "味はとてもおいしかったのですが、金曜の夜は少し料理が出てくるまで時間がかかりました。", "お待たせしてしまい、申し訳ございませんでした。改善に努めます。"],
+    [5, "ワインの種類が多く、料理に合わせて選んでもらえました。記念日にまた来たいです。", null],
+  ],
+  "鮨 みなと": [
+    [5, "カウンターで大将と話しながら、おまかせを楽しめました。白身の熟成が絶品です。", "ご来店ありがとうございました。またお好みを伺えるのを楽しみにしております。"],
+    [5, "10席だけなので落ち着いた雰囲気。接待で利用して、先方にもとても喜ばれました。", null],
+    [4, "どのネタも丁寧な仕事。値段なりの価値は十分にあると思います。", null],
+  ],
+  "大衆酒場 あかり": [
+    [4, "駅から近くて、仕事帰りに寄りやすい。煮込みとレモンサワーが最高です。", null],
+    [4, "30名の宴会で利用しました。大人数でも料理がスムーズに出てきて助かりました。", "大人数でのご利用、ありがとうございました。またのご宴会をお待ちしております。"],
+    [3, "にぎやかで楽しいお店。静かに飲みたいときには、少しうるさいかもしれません。", null],
+  ],
+};
 
 const RESTAURANTS = [
   {
@@ -123,14 +155,14 @@ async function main() {
   }
   const owner = users["owner@example.com"];
   const customer = users["customer@example.com"];
-  const customer2 = users["customer2@example.com"];
+  const customers = DEMO_USERS.filter((u) => u.role === "customer").map((u) => users[u.email]);
 
   // ---- デモのオーナーの店舗と、関係する予約を消して作り直す ----
   await prisma.reservation.deleteMany({
     where: {
       OR: [
         { restaurant: { ownerId: owner.id } },
-        { userId: { in: [customer.id, customer2.id] } },
+        { userId: { in: customers.map((c) => c.id) } },
       ],
     },
   });
@@ -173,7 +205,7 @@ async function main() {
         if (n % 11 === 0) status = "cancelled";
         if (isPast && n % 17 === 0) status = "no_show";
 
-        const user = byPhone ? null : n % 2 === 0 ? customer : customer2;
+        const user = byPhone ? null : customers[n % customers.length];
         await prisma.reservation.create({
           data: {
             code: generateReservationCode(),
@@ -194,8 +226,46 @@ async function main() {
     }
   }
 
+  // ---- 口コミ:来店済みのWeb予約に、デモ用の口コミを付ける ----
+  // デモのお客さん(customer@example.com)の来店には付けない。ログインして自分で書いてみられるようにするため
+  let reviewTotal = 0;
+  for (const restaurant of created) {
+    const samples = DEMO_REVIEWS[restaurant.name] ?? [];
+    if (samples.length === 0) continue;
+    const visits = await prisma.reservation.findMany({
+      where: {
+        restaurantId: restaurant.id,
+        status: "completed",
+        userId: { not: null, notIn: [customer.id] },
+      },
+      orderBy: { reservationDate: "desc" },
+      take: samples.length,
+    });
+    for (const [i, visit] of visits.entries()) {
+      const [rating, comment, reply] = samples[i];
+      await prisma.review.create({
+        data: {
+          reservationId: visit.id,
+          restaurantId: restaurant.id,
+          userId: visit.userId!,
+          rating,
+          comment,
+          ownerReply: reply,
+          ownerRepliedAt: reply ? new Date() : null,
+          isDemo: true,
+          // 来店の翌日に書いた、ということにする(未来の日時にはしない)
+          createdAt: new Date(Math.min(visit.reservationDate.getTime() + 24 * 60 * 60 * 1000, Date.now())),
+        },
+      });
+      reviewTotal++;
+    }
+    await refreshRestaurantRating(prisma, restaurant.id);
+  }
+
   const count = await prisma.reservation.count({ where: { restaurant: { ownerId: owner.id } } });
-  console.log(`デモデータを作り直しました:店舗 ${created.length}件、予約 ${count}件(パスワード: password123)`);
+  console.log(
+    `デモデータを作り直しました:店舗 ${created.length}件、予約 ${count}件、口コミ ${reviewTotal}件(パスワード: password123)`
+  );
 }
 
 main()

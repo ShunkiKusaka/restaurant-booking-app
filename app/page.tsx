@@ -5,6 +5,7 @@ import { shortArea } from "../lib/area.ts";
 import { PageContainer, ui } from "./components/ui.tsx";
 import FoodPattern from "./components/FoodPattern.tsx";
 import GenreArt from "./components/GenreArt.tsx";
+import { RatingSummary } from "./components/Stars.tsx";
 
 // 見出しの下に並べる、よく使うジャンルのボタン
 const QUICK_GENRES = ["焼肉", "寿司", "和食", "イタリアン", "居酒屋", "カフェ"];
@@ -132,6 +133,7 @@ export default async function Home({ searchParams }: PageProps<"/">) {
                       <span className="text-xs text-muted">{shortArea(r.address)}</span>
                     </div>
                     <h3 className="font-display text-lg text-ink group-hover:text-brand">{r.name}</h3>
+                    <RatingSummary average={r.ratingAverage} count={r.reviewCount} />
                     {r.description && (
                       <p className="line-clamp-2 text-sm leading-6 text-muted">{r.description}</p>
                     )}

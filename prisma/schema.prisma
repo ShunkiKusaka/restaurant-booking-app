@@ -24,6 +24,7 @@ model User {
   sessions     Session[]
   restaurants  Restaurant[]  // このユーザーが店舗オーナーの場合、持ってる店舗一覧
   reservations Reservation[] // このユーザーが行った予約一覧
+  reviews      Review[]      // このユーザーが書いた口コミ
 }
 
 model Account {
@@ -83,7 +84,12 @@ model Restaurant {
   bookingDeadlineMinutes Int    @default(60)      // 来店の何分前まで予約できるか
   cancelDeadlineHours    Int    @default(24)      // 来店の何時間前までお客さん自身でキャンセルできるか
 
+  // ---- 口コミの集計(口コミが書かれる・消される・非表示になるたびに更新する) ----
+  reviewCount   Int   @default(0) // 表示している口コミの件数
+  ratingAverage Float @default(0) // 表示している口コミの平均点(0 = まだない)
+
   reservations Reservation[]
+  reviews      Review[]
 }
 
 model Reservation {
@@ -104,6 +110,28 @@ model Reservation {
   note             String?    // ご要望(アレルギーなど)
   cancelledAt      DateTime?
   createdAt        DateTime   @default(now())
+  review           Review?    // この予約(来店)について書かれた口コミ
 
   @@index([restaurantId, reservationDate])
+}
+
+// 口コミ。来店済みの予約1件につき、1件だけ書ける
+model Review {
+  id             String      @id @default(cuid())
+  reservationId  String      @unique
+  reservation    Reservation @relation(fields: [reservationId], references: [id], onDelete: Cascade)
+  restaurantId   String
+  restaurant     Restaurant  @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  userId         String
+  user           User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  rating         Int         // 1〜5
+  comment        String
+  ownerReply     String?     // 店主からの返信(1回だけ)
+  ownerRepliedAt DateTime?
+  hidden         Boolean     @default(false) // 運営が非表示にしたら true
+  isDemo         Boolean     @default(false) // デモ用の架空の口コミ
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+
+  @@index([restaurantId, createdAt])
 }

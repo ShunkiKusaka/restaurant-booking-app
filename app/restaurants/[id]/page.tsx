@@ -16,8 +16,11 @@ import { WEEKDAY_LABELS, formatWeekdays } from "../../../lib/labels.ts";
 import { shortArea } from "../../../lib/area.ts";
 import { Notice, PageContainer, ui } from "../../components/ui.tsx";
 import GenreArt from "../../components/GenreArt.tsx";
+import { RatingSummary } from "../../components/Stars.tsx";
+import ReviewCard from "../../components/ReviewCard.tsx";
 
 const DATE_CHIPS = 14;
+const REVIEWS_ON_PAGE = 20;
 
 function first(v: string | string[] | undefined): string {
   return (Array.isArray(v) ? v[0] : v) ?? "";
@@ -66,6 +69,17 @@ export default async function RestaurantPage({ params, searchParams }: PageProps
   );
   const availableCount = slots.filter((s) => s.status === "available").length;
 
+  // 表示している口コミ(新しい順に20件)
+  const reviews = await prisma.review.findMany({
+    where: { restaurantId: restaurant.id, hidden: false },
+    include: {
+      user: { select: { name: true } },
+      reservation: { select: { reservationDate: true } },
+    },
+    orderBy: { createdAt: "desc" },
+    take: REVIEWS_ON_PAGE,
+  });
+
   const chips = Array.from({ length: DATE_CHIPS }, (_, i) => {
     const d = addDays(today, i);
     return { date: d, closed: isClosedDay(restaurant, d), weekday: weekdayOf(d) };
@@ -96,6 +110,9 @@ export default async function RestaurantPage({ params, searchParams }: PageProps
             <span className="text-xs text-muted">{shortArea(restaurant.address)}</span>
           </div>
           <h1 className="mt-2 font-display text-3xl text-ink sm:text-4xl">{restaurant.name}</h1>
+          <a href="#reviews-title" className="mt-2 inline-block">
+            <RatingSummary average={restaurant.ratingAverage} count={restaurant.reviewCount} />
+          </a>
           {restaurant.description && (
             <p className="mt-3 whitespace-pre-line text-sm leading-7 text-muted">{restaurant.description}</p>
           )}
@@ -211,6 +228,27 @@ export default async function RestaurantPage({ params, searchParams }: PageProps
                   <p className="mt-3 text-sm text-muted">この日は、{guests}名で予約できる時間がありません。</p>
                 )}
               </>
+            )}
+          </section>
+
+          {/* ---- 口コミ ---- */}
+          <section aria-labelledby="reviews-title" className={`${ui.card} mt-8 p-5 sm:p-6`}>
+            <div className="flex flex-wrap items-baseline justify-between gap-2">
+              <h2 id="reviews-title" className={ui.sectionTitle}>口コミ</h2>
+              <RatingSummary average={restaurant.ratingAverage} count={restaurant.reviewCount} />
+            </div>
+            <p className="mt-2 text-xs text-muted">
+              このお店を予約して来店した方だけが書ける口コミです。
+            </p>
+            {reviews.length === 0 ? (
+              <p className="mt-4 text-sm text-muted">まだ口コミはありません。</p>
+            ) : (
+              <div className="mt-2">
+                {reviews.map((rv) => <ReviewCard key={rv.id} review={rv} />)}
+              </div>
+            )}
+            {restaurant.reviewCount > reviews.length && (
+              <p className="mt-2 text-xs text-muted">新しい順に{reviews.length}件を表示しています。</p>
             )}
           </section>
         </div>

@@ -12,7 +12,8 @@ export default async function MyReservationsPage() {
 
   const reservations = await prisma.reservation.findMany({
     where: { userId: session.user.id },
-    include: { restaurant: true }, // 予約に紐づく店舗情報も取得
+    // 予約に紐づく店舗情報と、口コミを書いたかどうかも取得
+    include: { restaurant: true, review: { select: { id: true } } },
     orderBy: { reservationDate: "asc" },
   });
 
@@ -35,7 +36,12 @@ export default async function MyReservationsPage() {
           </p>
           <p className="tabular text-xs text-muted">予約番号 {formatReservationCode(r.code)}</p>
         </div>
-        <ReservationStatusBadge status={r.status} />
+        <div className="flex shrink-0 flex-col items-end gap-1.5">
+          <ReservationStatusBadge status={r.status} />
+          {r.status === "completed" && !r.review && (
+            <span className="text-xs font-bold text-brand">口コミを書く →</span>
+          )}
+        </div>
       </Link>
     </li>
   );
