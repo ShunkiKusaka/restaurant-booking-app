@@ -12,7 +12,7 @@ export default function Header() {
     <header className="border-b border-line bg-surface">
       <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-x-6 gap-y-2 px-4 py-3 sm:px-6">
         <Link href="/" className="flex items-center gap-2 font-bold text-ink">
-          <span aria-hidden="true" className="grid h-7 w-7 place-items-center rounded-md bg-brand text-sm text-white">
+          <span aria-hidden="true" className="grid h-7 w-7 place-items-center rounded bg-brand font-display text-sm text-white">
             予
           </span>
           飲食店予約
@@ -57,7 +57,7 @@ export default function Header() {
               </Link>
               <Link
                 href="/register"
-                className="rounded-lg bg-brand px-3 py-1.5 font-medium text-white hover:bg-brand-dark"
+                className="inline-flex min-h-10 items-center rounded-md bg-brand px-4 font-bold text-white hover:bg-brand-dark"
               >
                 会員登録
               </Link>

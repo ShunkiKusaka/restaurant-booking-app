@@ -1,19 +1,22 @@
 @import "tailwindcss";
 
-/* 色と文字の基本設定。ここを変えると、アプリ全体の見た目が変わる */
+/* 色と文字の基本設定。ここを変えると、アプリ全体の見た目が変わる(配色B:和の朱色) */
 @theme inline {
-  --color-paper: #f5f5f2;      /* 背景 */
-  --color-surface: #ffffff;    /* カードの面 */
-  --color-ink: #1d1c1a;        /* 文字 */
-  --color-muted: #6b6862;      /* 補足の文字 */
-  --color-line: #e3e1da;       /* 罫線 */
-  --color-brand: #1f4d3f;      /* メインの色(深い緑) */
-  --color-brand-dark: #163a2f;
-  --color-brand-soft: #e6efe9;
-  --color-accent: #b7832f;     /* 差し色(真鍮) */
-  --color-danger: #b42318;
-  --color-danger-soft: #fdecea;
+  --color-paper: #f7f2e8;      /* 背景(生成り) */
+  --color-surface: #fffdf8;    /* カードの面 */
+  --color-ink: #231f1a;        /* 文字 */
+  --color-muted: #675f53;      /* 補足の文字 */
+  --color-line: #e7ddcb;       /* 罫線 */
+  --color-brand: #b3362a;      /* メインの色(朱色) */
+  --color-brand-dark: #8c2a20;
+  --color-brand-soft: #f6e1dc;
+  --color-accent: #8a6420;     /* 差し色(金茶) */
+  --color-hero: #f1e8d8;       /* トップの見出し部分の背景 */
+  --color-pattern: #e0cdae;    /* 食べ物アイコンの線 */
+  --color-danger: #a4262c;
+  --color-danger-soft: #fbe9e9;
   --font-sans: var(--font-noto-sans-jp), "Hiragino Kaku Gothic ProN", "Yu Gothic", Meiryo, sans-serif;
+  --font-display: var(--font-shippori-mincho), "Hiragino Mincho ProN", "Yu Mincho", serif;
 }
 
 :root {

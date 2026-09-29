@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Noto_Sans_JP } from "next/font/google";
+import { Noto_Sans_JP, Shippori_Mincho } from "next/font/google";
 import "./globals.css";
 import Providers from "./Providers.tsx";
 import Header from "./components/Header.tsx";
@@ -11,6 +11,14 @@ const notoSansJp = Noto_Sans_JP({
   display: "swap",
 });
 
+// 見出し用の明朝体
+const shipporiMincho = Shippori_Mincho({
+  variable: "--font-shippori-mincho",
+  subsets: ["latin"],
+  weight: ["700"],
+  display: "swap",
+});
+
 export const metadata: Metadata = {
   title: "飲食店予約",
   description: "お店の空き状況を見て、その場で予約できる飲食店予約システムのデモです",
@@ -18,7 +26,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="ja" className={`${notoSansJp.variable} h-full antialiased`}>
+    <html lang="ja" className={`${notoSansJp.variable} ${shipporiMincho.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col">
         <Providers>
           <Header />

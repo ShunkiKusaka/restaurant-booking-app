@@ -13,7 +13,9 @@ import {
   weekdayOf,
 } from "../../../lib/booking.ts";
 import { WEEKDAY_LABELS, formatWeekdays } from "../../../lib/labels.ts";
+import { shortArea } from "../../../lib/area.ts";
 import { Notice, PageContainer, ui } from "../../components/ui.tsx";
+import GenreArt from "../../components/GenreArt.tsx";
 
 const DATE_CHIPS = 14;
 
@@ -84,12 +86,16 @@ export default async function RestaurantPage({ params, searchParams }: PageProps
 
       <div className="mt-4 grid gap-8 lg:grid-cols-[1fr_20rem]">
         <div>
-          {restaurant.genre && (
-            <span className="rounded-full bg-surface px-2.5 py-0.5 text-xs text-muted ring-1 ring-line">
-              {restaurant.genre}
-            </span>
-          )}
-          <h1 className="mt-2 text-2xl font-bold text-ink sm:text-3xl">{restaurant.name}</h1>
+          <GenreArt genre={restaurant.genre} size={96} className="mb-5 h-40 rounded-lg sm:h-52" />
+          <div className="flex flex-wrap items-center gap-2">
+            {restaurant.genre && (
+              <span className="rounded bg-brand-soft px-2.5 py-0.5 text-xs font-bold text-brand-dark">
+                {restaurant.genre}
+              </span>
+            )}
+            <span className="text-xs text-muted">{shortArea(restaurant.address)}</span>
+          </div>
+          <h1 className="mt-2 font-display text-3xl text-ink sm:text-4xl">{restaurant.name}</h1>
           {restaurant.description && (
             <p className="mt-3 whitespace-pre-line text-sm leading-7 text-muted">{restaurant.description}</p>
           )}
@@ -127,7 +133,7 @@ export default async function RestaurantPage({ params, searchParams }: PageProps
                     <span
                       key={c.date}
                       aria-disabled="true"
-                      className="flex w-14 shrink-0 flex-col items-center rounded-lg border border-dashed border-line py-2 text-xs text-muted/70"
+                      className="flex w-14 shrink-0 flex-col items-center rounded-lg border border-dashed border-line bg-paper py-2 text-xs text-muted"
                     >
                       <span className="tabular">{m}/{d}</span>
                       <span>休</span>
@@ -182,7 +188,9 @@ export default async function RestaurantPage({ params, searchParams }: PageProps
                       {s.status === "available" ? (
                         <Link
                           href={`/restaurants/${restaurant.id}/reserve?date=${date}&time=${s.time}&guests=${guests}`}
-                          className="flex flex-col items-center rounded-lg border border-brand/40 bg-surface py-2.5 text-brand transition-colors hover:bg-brand hover:text-white"
+                          className={`flex min-h-14 flex-col items-center justify-center rounded-lg border border-brand py-2 transition-colors hover:bg-brand hover:text-white ${
+                            s.remainingSeats <= 6 ? "bg-brand-soft text-brand-dark" : "bg-surface text-brand"
+                          }`}
                         >
                           <span className="tabular text-base font-bold">{s.time}</span>
                           <span className="text-xs">{s.remainingSeats <= 6 ? `残り${s.remainingSeats}席` : "空きあり"}</span>
@@ -190,7 +198,7 @@ export default async function RestaurantPage({ params, searchParams }: PageProps
                       ) : (
                         <span
                           aria-disabled="true"
-                          className="flex flex-col items-center rounded-lg border border-line bg-paper py-2.5 text-muted/70"
+                          className="flex min-h-14 flex-col items-center justify-center rounded-lg border border-line bg-paper py-2 text-muted"
                         >
                           <span className="tabular text-base">{s.time}</span>
                           <span className="text-xs">{s.status === "full" ? "満席" : "受付終了"}</span>

@@ -9,7 +9,7 @@ export const ui = {
   btnDanger:
     "inline-flex items-center justify-center gap-2 rounded-lg border border-danger/30 bg-surface px-4 py-2.5 text-sm font-medium text-danger transition-colors hover:bg-danger-soft",
   input:
-    "w-full rounded-lg border border-line bg-surface px-3 py-2.5 text-sm text-ink placeholder:text-muted/70 focus:border-brand focus:outline-none",
+    "w-full rounded-lg border border-line bg-surface px-3 py-2.5 text-sm text-ink placeholder:text-muted/80 focus:border-brand focus:outline-none",
   label: "mb-1.5 block text-sm font-medium text-ink",
   card: "rounded-xl border border-line bg-surface",
   sectionTitle: "text-base font-bold text-ink",
