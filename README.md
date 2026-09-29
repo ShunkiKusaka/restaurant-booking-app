@@ -351,3 +351,34 @@ lib/reviews.ts（新規）、
 prisma/schema.prisma、
 prisma/seed.ts、
 prisma/migrations/20260929200000_reviews/migration.sql（新規）
+
+
+5の詳細
+05-nearby.patch
+<現在地から近いお店を探す・今すぐ入れるお店>
+
+変更した内容
+↓
+「現在地から探す」ボタンで、1km／3km／5km／10km以内のお店を近い順に表示
+お店のカードに、現在地からの距離（例：約1.2km）を表示
+現在地は約100m単位に丸めてからURLに入れる
+「今すぐ入れるお店」で、今から90分以内に2名で入れるお店に絞り込める
+予約台帳から自動で計算し、カードに「今日 19:30から入れます」の札を表示
+お店の登録時と住所の変更時に、住所から緯度・経度を自動で調べて保存（OpenStreetMap）
+店主の設定画面に、地図上の位置が見つかったかと「地図で確認する」リンクを表示
+お店のページの住所に「地図を開く」リンクを追加
+フッターに位置情報の出典（© OpenStreetMap contributors）を表示
+デモの5店舗に、おおよその位置を設定
+
+変更ファイル
+↓
+page.tsx、
+layout.tsx、
+restaurants/[id]/page.tsx、
+owner/owner-actions.ts、
+owner/restaurant-actions.ts、
+owner/restaurants/[id]/settings/page.tsx、
+components/LocationButton.tsx（新規）、
+lib/geo.ts（新規）、
+lib/geocode.ts（新規）、
+lib
