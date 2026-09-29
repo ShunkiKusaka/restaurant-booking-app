@@ -68,12 +68,18 @@ export default function RegisterForm() {
         <p role="alert" className="text-sm text-danger">{state.error}</p>
       )}
 
+      <p className="text-xs leading-6 text-muted">
+        登録すると、<Link href="/terms" className="text-ink underline" target="_blank">利用規約</Link>と
+        <Link href="/privacy" className="text-ink underline" target="_blank">プライバシーポリシー</Link>
+        に同意したものとみなします。
+      </p>
+
       <button
         type="submit"
         disabled={pending}
         className={`${ui.btnPrimary} w-full`}
       >
-        {pending ? "登録しています…" : "登録する"}
+        {pending ? "登録しています…" : "同意して登録する"}
       </button>
 
       <p className="text-sm text-muted text-center">
