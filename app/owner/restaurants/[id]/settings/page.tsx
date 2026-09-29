@@ -21,6 +21,29 @@ export default async function RestaurantSettingsPage({ params, searchParams }: P
         <div className="mt-4"><Notice>設定を保存しました。お客さんの予約画面にも反映されています。</Notice></div>
       )}
 
+      {/* 地図上の位置(「現在地から探す」で使う) */}
+      <div className="mt-4">
+        {restaurant.latitude === null || restaurant.longitude === null ? (
+          <Notice tone="info">
+            この住所の地図上の位置が見つかりませんでした。このままだと、お客さんが「現在地から探す」を使ったときに表示されません。
+            住所を「東京都渋谷区道玄坂1-2-3」のように、都道府県から入力して保存し直してください。
+          </Notice>
+        ) : (
+          <p className="text-xs text-muted">
+            地図上の位置:登録済み(
+            <a
+              href={`https://www.openstreetmap.org/?mlat=${restaurant.latitude}&mlon=${restaurant.longitude}#map=17/${restaurant.latitude}/${restaurant.longitude}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline"
+            >
+              地図で確認する
+            </a>
+            )
+          </p>
+        )}
+      </div>
+
       <div className="mt-6">
         <SettingsForm
           restaurantId={restaurant.id}

@@ -5,6 +5,7 @@ import { auth } from "../../auth.ts";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { GENRES } from "../../lib/labels.ts";
+import { geocodeAddress } from "../../lib/geocode.ts";
 
 export type RestaurantFormState = { error?: string };
 
@@ -36,6 +37,9 @@ export async function createRestaurant(
     return { error: "席数は1〜1000の数字で入力してください" };
   }
 
+  // 住所から地図上の位置を調べる(見つからなくても登録はできる)
+  const location = await geocodeAddress(address);
+
   // DBに保存する作業(運営の審査が終わるまでは「審査中」)
   await prisma.restaurant.create({
     data: {
@@ -47,6 +51,9 @@ export async function createRestaurant(
       phoneNumber,
       seatCount,
       status: "pending",
+      latitude: location?.lat ?? null,
+      longitude: location?.lng ?? null,
+      geocodedAddress: address,
     },
   });
 

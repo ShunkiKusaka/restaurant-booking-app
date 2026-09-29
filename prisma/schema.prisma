@@ -84,6 +84,11 @@ model Restaurant {
   bookingDeadlineMinutes Int    @default(60)      // 来店の何分前まで予約できるか
   cancelDeadlineHours    Int    @default(24)      // 来店の何時間前までお客さん自身でキャンセルできるか
 
+  // ---- 地図上の位置(住所から自動で調べる。見つからなければ null) ----
+  latitude        Float?  // 緯度
+  longitude       Float?  // 経度
+  geocodedAddress String? // 位置を調べたときの住所(住所が変わったら調べ直す)
+
   // ---- 口コミの集計(口コミが書かれる・消される・非表示になるたびに更新する) ----
   reviewCount   Int   @default(0) // 表示している口コミの件数
   ratingAverage Float @default(0) // 表示している口コミの平均点(0 = まだない)

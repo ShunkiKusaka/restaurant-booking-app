@@ -8,6 +8,7 @@ import { parseJstDateTime } from "../../lib/datetime.ts";
 import { ABSOLUTE_MAX_PARTY, checkBookingRequest, timeToMinutes } from "../../lib/booking.ts";
 import { GENRES, OCCASIONS } from "../../lib/labels.ts";
 import { createReservationIfAvailable } from "../../lib/create-reservation.ts";
+import { geocodeAddress } from "../../lib/geocode.ts";
 
 export type OwnerFormState = { error?: string };
 
@@ -165,9 +166,21 @@ export async function updateRestaurantSettings(
     return { error: "キャンセル期限を選び直してください" };
   }
 
+  // 住所が変わったとき、または位置がまだ分からないときだけ、地図上の位置を調べ直す
+  let locationData = {};
+  if (address !== restaurant.geocodedAddress || restaurant.latitude === null) {
+    const location = await geocodeAddress(address);
+    locationData = {
+      latitude: location?.lat ?? null,
+      longitude: location?.lng ?? null,
+      geocodedAddress: address,
+    };
+  }
+
   await prisma.restaurant.update({
     where: { id: restaurantId },
     data: {
+      ...locationData,
       name,
       genre: genre || null,
       description: description || null,

@@ -31,8 +31,14 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <Providers>
           <Header />
           <div className="flex-1">{children}</div>
-          <footer className="border-t border-line py-6 text-center text-xs text-muted">
-            このサイトは制作サンプルです。掲載している店舗・予約はすべて架空です。
+          <footer className="space-y-1 border-t border-line py-6 text-center text-xs text-muted">
+            <p>このサイトは制作サンプルです。掲載している店舗・予約はすべて架空です。</p>
+            <p>
+              位置情報:©{" "}
+              <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer" className="underline">
+                OpenStreetMap contributors
+              </a>
+            </p>
           </footer>
         </Providers>
       </body>

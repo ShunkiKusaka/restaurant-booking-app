@@ -259,7 +259,17 @@ export default async function RestaurantPage({ params, searchParams }: PageProps
           <dl className="mt-3 space-y-3 text-sm">
             <div>
               <dt className="text-muted">住所</dt>
-              <dd className="text-ink">{restaurant.address}</dd>
+              <dd className="text-ink">
+                {restaurant.address}
+                <a
+                  href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(restaurant.address)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="ml-2 text-xs text-brand underline"
+                >
+                  地図を開く
+                </a>
+              </dd>
             </div>
             <div>
               <dt className="text-muted">電話番号</dt>
