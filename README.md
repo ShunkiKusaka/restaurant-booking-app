@@ -143,6 +143,11 @@ git push  git hubに保存
 
 2-login-errors.patch	
 <ログインのエラー表示、登録完了の表示>
+変更した内容
+↓
+ログイン成功後、緑色の成功メッセージを出す
+失敗したら、赤色の警告文字を出す
+新規登録成功後、緑色の成功メッセージを出す
 
 変更ファイル
 ↓
@@ -151,7 +156,21 @@ login/page.tsx
 
 
 3-reservation-time-and-checks.patch	
-予約の時刻を日本時間に、入力チェック、席数の確認	
+<予約の時刻を日本時間に、入力チェック、席数の確認>
+変更した内容
+↓
+ログアウトした状態で開くと、お店ごとに「ログインして予約する」ボタンを出す
+予約フォームの代わりに「予約は一般ユーザーのアカウントで行えます」と出す(店舗オーナー)
+明日の19:00、2名で予約して、予約一覧の画面に移動させる
+日付は今日、時間は今より前（たとえば朝の9:00）にして予約する
+「過去の日時は予約できません」と出ればOK
+
+満席になるか
+同じ日付・時間で予約したとき、すでに予約されてる店側の最大席数を超えていた場合に
+「その時間は満席です。別の時間をお選びください」と表示する
+
+変更したファイル
+↓
 lib/datetime.ts、
 lib/booking.ts、
 actions.ts、
@@ -165,8 +184,17 @@ lib/labels.ts、
 reservation-actions.ts、
 reservations/page.tsx
 
+
 5-owner-review-status.patch	
 オーナーの店舗の審査状況、店舗登録のエラー表示	
+owner/ の4ファイル
+
+
+6-admin-and-header.patch	
+運営画面のスマホ対応、ヘッダーの日本語表示	
+admin-actions.ts、
+admin/dashboard/page.tsx、
+components/Header.tsx舗の審査状況、店舗登録のエラー表示	
 owner/ の4ファイル
 
 6-admin-and-header.patch	
