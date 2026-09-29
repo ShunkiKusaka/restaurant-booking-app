@@ -3,8 +3,8 @@
 
 export const SITE_NAME = "飲食店予約";
 export const OPERATOR_NAME = "ミセノハコ";
-export const OPERATOR_REPRESENTATIVE = "【代表者名】";
-export const CONTACT_EMAIL = "【連絡先メールアドレス】";
+export const OPERATOR_REPRESENTATIVE = "日下駿希";
+export const CONTACT_EMAIL = "misenohako.web@gmail.com";
 
 /** 各ページの「制定日・改定日」 */
 export const LEGAL_UPDATED_AT = "2026年9月30日";
