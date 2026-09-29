@@ -152,7 +152,7 @@ git push  git hubに保存
 変更ファイル
 ↓
 login/LoginForm.tsx、
-login/page.tsxn
+login/page.tsx
 
 
 3-reservation-time-and-checks.patch	
